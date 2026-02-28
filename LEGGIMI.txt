@@ -1,0 +1,28 @@
+
+📄 GUIDA – SALVATORE DOCUMENTI PDF (Bolle e Fatture)
+
+✅ COSA FA QUESTO PROGRAMMA:
+- Ti permette di inserire tipo documento, numero e cliente
+- Ti fa scegliere un PDF appena generato da Mexal
+- Stampa il documento con la stampante di default
+- Salva il PDF in una cartella specifica:
+  • Solo PRIMA PAGINA se Fattura
+  • Tutto intero se Bolla
+- Il file viene salvato come: "3-10 Mario Rossi.pdf"
+
+📁 PERCORSI DI SALVATAGGIO:
+- BOLLE → Desktop/AMMINISTRAZIONE_2025/BOLLE_2025
+- FATTURE → Desktop/AMMINISTRAZIONE_2025/FATTURE_2025
+
+🔧 COME CREARE IL COLLEGAMENTO:
+1. Vai sul Desktop, clic destro → Nuovo > Collegamento
+2. Inserisci questo percorso (modifica se serve):
+
+   "C:\Users\TUO_NOME\AppData\Local\Programs\Python\Python3x\pythonw.exe" "C:\percorso\salva_documento.py"
+
+3. Cambia nome collegamento in "Salva e stampa PDF"
+4. Clic destro > Proprietà > "Cambia icona..." → scegli stampante.ico
+
+📌 IMPORTANTE:
+- Il file `progressivo_documenti.json` verrà creato da solo alla prima esecuzione
+- Se vuoi inviare tutto via Gmail, rinomina il file `.zip` in `.zippato`

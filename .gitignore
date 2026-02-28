@@ -1,0 +1,18 @@
+__pycache__/
+*.py[cod]
+*.log
+*.lnk
+*.tmp
+*.bak
+*.swp
+.venv/
+venv/
+.env
+
+# runtime state
+watcher_seen.json
+documenti_state.json
+progressivo_documenti.json
+
+# local artifacts
+mexal_daemon.log
