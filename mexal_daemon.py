@@ -543,12 +543,38 @@ class MexalDaemonApp:
 
         self.overlay: Optional[tk.Toplevel] = None
         self.list_window: Optional[tk.Toplevel] = None
+        self.list_tree: Optional[ttk.Treeview] = None
 
         self._last_detected: list[ParsedDoc] = []
         self._current_doc: Optional[ParsedDoc] = None
         self._tick_count = 0
 
         self.root.after(1000, self._tick)
+
+    def _refresh_list_tree(self) -> None:
+        tree = self.list_tree
+        if not tree or not tree.winfo_exists():
+            return
+
+        try:
+            for iid in list(tree.get_children()):
+                tree.delete(iid)
+        except Exception:
+            return
+
+        docs = self._collect_last_docs(limit=5)
+        for doc in docs:
+            created_str = time.strftime("%d/%m/%Y %H:%M:%S", time.localtime(doc.created_at))
+            tree.insert(
+                "",
+                "end",
+                iid=self._doc_id(doc),
+                values=(doc.doc_code, doc.doc_type, doc.recipient, doc.doc_date, created_str),
+            )
+
+        if tree.get_children():
+            tree.selection_set(tree.get_children()[0])
+            tree.event_generate("<<TreeviewSelect>>")
 
     def _tick(self):
         try:
@@ -691,6 +717,7 @@ class MexalDaemonApp:
 
     def _show_list_window(self):
         if self.list_window and self.list_window.winfo_exists():
+            self._refresh_list_tree()
             try:
                 self.list_window.deiconify()
             except Exception:
@@ -717,6 +744,7 @@ class MexalDaemonApp:
 
         cols = ("tipo", "descr", "destinatario", "data_doc", "creato")
         tree = ttk.Treeview(main, columns=cols, show="headings", height=6)
+        self.list_tree = tree
         tree.heading("tipo", text="Tipo")
         tree.heading("descr", text="Descrizione")
         tree.heading("destinatario", text="Destinatario")
