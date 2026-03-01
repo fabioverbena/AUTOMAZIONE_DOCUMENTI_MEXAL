@@ -34,7 +34,13 @@ pip install -r requirements.txt
 
 ## 4) Configurare SMTP Gmail (invio email)
 
-Il daemon legge la configurazione SMTP da **variabili d’ambiente**.
+Il daemon legge la configurazione SMTP da **variabili d’ambiente** e/o da un file **`.env`** nella cartella dell’app.
+
+Ordine di priorità:
+- se esistono variabili d’ambiente di Windows (User/System) vengono usate
+- se mancano, il daemon carica i valori da `.env` (stessa cartella del programma)
+
+Inoltre, se premi **3) Email** e manca la configurazione SMTP, compare un **wizard** che ti fa inserire i valori e li salva automaticamente in `.env`.
 
 Valori richiesti:
 - `SMTP_HOST` (es. `smtp.gmail.com`)
@@ -43,7 +49,18 @@ Valori richiesti:
 - `SMTP_PASS` (App Password Gmail)
 - `SMTP_FROM` (opzionale)
 
-### Impostazione (consigliata) permanente a livello utente
+### Opzione A: file `.env` (consigliata per versione portable)
+Crea un file `.env` nella cartella del programma con questo contenuto:
+
+```ini
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=465
+SMTP_USER=<GMAIL>
+SMTP_PASS=<APP_PASSWORD>
+SMTP_FROM=Fior d'Acqua Team <GMAIL>
+```
+
+### Opzione B: impostazione permanente a livello utente (Windows)
 Esegui una volta (PowerShell):
 
 ```powershell

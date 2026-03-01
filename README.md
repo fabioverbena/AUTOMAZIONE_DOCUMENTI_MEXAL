@@ -18,7 +18,13 @@ pip install -r requirements.txt
 ```
 
 ## Configurazione SMTP (Gmail)
-Impostare le variabili d’ambiente (App Password Gmail):
+Puoi configurare SMTP in 2 modi:
+- Variabili d’ambiente Windows
+- File `.env` nella cartella dell’app (utile per versione portable)
+
+Se premi **Email** e la configurazione manca, l’app propone un wizard per inserirla e salvarla in `.env`.
+
+### Variabili d’ambiente (App Password Gmail)
 
 ```powershell
 $env:SMTP_HOST="smtp.gmail.com"
@@ -27,6 +33,15 @@ $env:SMTP_USER="<gmail>"
 $env:SMTP_PASS="<app_password>"
 # opzionale
 $env:SMTP_FROM="Fior d'Acqua Team <gmail>"
+```
+
+### File `.env`
+```ini
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=465
+SMTP_USER=<gmail>
+SMTP_PASS=<app_password>
+SMTP_FROM=Fior d'Acqua Team <gmail>
 ```
 
 Nota: **non** salvare password nel repository.
@@ -51,8 +66,4 @@ python .\mexal_daemon.py --uninstall-startup
 ```
 
 ## Migrazione su un altro PC
-1. Copia la cartella del progetto (o clona da GitHub)
-2. Crea venv e installa requirements
-3. Imposta variabili SMTP (a livello Utente o Sistema)
-4. (Consigliato) installa SumatraPDF
-5. Esegui `--install-startup`
+Vedi: `INSTALL_PC_LAVORO.md`

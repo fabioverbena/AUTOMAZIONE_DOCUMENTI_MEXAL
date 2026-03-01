@@ -48,6 +48,37 @@ def _smtp_config() -> dict[str, object]:
     }
 
 
+def _app_dir() -> str:
+    if getattr(sys, "frozen", False):
+        return os.path.dirname(os.path.abspath(sys.executable))
+    return os.path.dirname(os.path.abspath(__file__))
+
+
+def _load_dotenv(env_path: str) -> None:
+    try:
+        if not os.path.isfile(env_path):
+            return
+        with open(env_path, "r", encoding="utf-8") as f:
+            for raw in f:
+                line = raw.strip()
+                if not line or line.startswith("#"):
+                    continue
+                if "=" not in line:
+                    continue
+                k, v = line.split("=", 1)
+                k = k.strip()
+                v = v.strip().strip('"').strip("'")
+                if not k:
+                    continue
+                os.environ.setdefault(k, v)
+    except Exception as e:
+        _log(f"dotenv load failed: {e}")
+
+
+DOTENV_PATH = os.path.join(_app_dir(), ".env")
+_load_dotenv(DOTENV_PATH)
+
+
 def send_email_smtp(
     *,
     host: str,
@@ -975,6 +1006,93 @@ class MexalDaemonApp:
         self.root.wait_window(dlg)
         return result["value"]
 
+    def _smtp_settings_wizard(self) -> bool:
+        cfg = _smtp_config()
+
+        dlg = tk.Toplevel(self.root)
+        dlg.title("Impostazioni SMTP")
+        dlg.attributes("-topmost", True)
+        dlg.resizable(False, False)
+
+        frm = ttk.Frame(dlg, padding=10)
+        frm.grid(row=0, column=0, sticky="nsew")
+
+        host_var = tk.StringVar(value=str(cfg.get("host") or "smtp.gmail.com"))
+        port_var = tk.StringVar(value=str(cfg.get("port") or 465))
+        user_var = tk.StringVar(value=str(cfg.get("user") or ""))
+        pass_var = tk.StringVar(value=str(cfg.get("password") or ""))
+        from_var = tk.StringVar(value=str(cfg.get("from_addr") or ""))
+
+        ttk.Label(frm, text="Host:").grid(row=0, column=0, sticky="w")
+        ttk.Entry(frm, textvariable=host_var, width=38).grid(row=0, column=1, sticky="ew", padx=(8, 0))
+
+        ttk.Label(frm, text="Porta:").grid(row=1, column=0, sticky="w", pady=(6, 0))
+        ttk.Entry(frm, textvariable=port_var, width=10).grid(row=1, column=1, sticky="w", padx=(8, 0), pady=(6, 0))
+
+        ttk.Label(frm, text="Utente (SMTP_USER):").grid(row=2, column=0, sticky="w", pady=(6, 0))
+        ttk.Entry(frm, textvariable=user_var, width=38).grid(row=2, column=1, sticky="ew", padx=(8, 0), pady=(6, 0))
+
+        ttk.Label(frm, text="Password App (SMTP_PASS):").grid(row=3, column=0, sticky="w", pady=(6, 0))
+        ttk.Entry(frm, textvariable=pass_var, width=38, show="*").grid(row=3, column=1, sticky="ew", padx=(8, 0), pady=(6, 0))
+
+        ttk.Label(frm, text="Mittente (opzionale SMTP_FROM):").grid(row=4, column=0, sticky="w", pady=(6, 0))
+        ttk.Entry(frm, textvariable=from_var, width=38).grid(row=4, column=1, sticky="ew", padx=(8, 0), pady=(6, 0))
+
+        note = f"Salvataggio in: {DOTENV_PATH}"
+        ttk.Label(frm, text=note).grid(row=5, column=0, columnspan=2, sticky="w", pady=(10, 0))
+
+        result: dict[str, bool] = {"ok": False}
+
+        def save():
+            host = host_var.get().strip()
+            port_s = port_var.get().strip()
+            user = user_var.get().strip()
+            password = pass_var.get().strip()
+            from_addr = from_var.get().strip()
+
+            try:
+                port = int(port_s)
+            except Exception:
+                messagebox.showwarning("Attenzione", "Porta non valida.")
+                return
+
+            if not host or not port or not user or not password:
+                messagebox.showwarning("Attenzione", "Compila host/porta/utente/password.")
+                return
+
+            try:
+                with open(DOTENV_PATH, "w", encoding="utf-8") as f:
+                    f.write(f"SMTP_HOST={host}\n")
+                    f.write(f"SMTP_PORT={port}\n")
+                    f.write(f"SMTP_USER={user}\n")
+                    f.write(f"SMTP_PASS={password}\n")
+                    if from_addr:
+                        f.write(f"SMTP_FROM={from_addr}\n")
+            except Exception as e:
+                messagebox.showerror("Errore", f"Impossibile salvare .env:\n{e}")
+                return
+
+            os.environ["SMTP_HOST"] = host
+            os.environ["SMTP_PORT"] = str(port)
+            os.environ["SMTP_USER"] = user
+            os.environ["SMTP_PASS"] = password
+            if from_addr:
+                os.environ["SMTP_FROM"] = from_addr
+
+            result["ok"] = True
+            dlg.destroy()
+
+        def cancel():
+            dlg.destroy()
+
+        ttk.Button(frm, text="Annulla", command=cancel).grid(row=6, column=0, pady=(10, 0), sticky="ew", padx=(0, 8))
+        ttk.Button(frm, text="Salva", command=save).grid(row=6, column=1, pady=(10, 0), sticky="ew")
+
+        dlg.grab_set()
+        dlg.focus_force()
+        self.root.wait_window(dlg)
+        return result["ok"]
+
     def _ask_email(self, doc: ParsedDoc) -> Optional[dict[str, str]]:
         dlg = tk.Toplevel(self.root)
         dlg.title("Email")
@@ -1065,16 +1183,20 @@ class MexalDaemonApp:
         from_addr = str(cfg.get("from_addr") or "").strip()
 
         if not host or not port or not user or not password or not from_addr:
-            messagebox.showerror(
-                "Errore",
-                "Configurazione SMTP mancante. Imposta le variabili d'ambiente:\n"
-                "SMTP_HOST=smtp.gmail.com\n"
-                "SMTP_PORT=465\n"
-                "SMTP_USER=<la mail gmail>\n"
-                "SMTP_PASS=<app password gmail>\n"
-                "(opzionale) SMTP_FROM=<mittente visualizzato>\n",
-            )
-            return
+            ok = self._smtp_settings_wizard()
+            if not ok:
+                return
+
+            cfg = _smtp_config()
+            host = str(cfg.get("host") or "").strip()
+            port = int(cfg.get("port") or 0)
+            user = str(cfg.get("user") or "").strip()
+            password = str(cfg.get("password") or "").strip()
+            from_addr = str(cfg.get("from_addr") or "").strip()
+
+            if not host or not port or not user or not password or not from_addr:
+                messagebox.showerror("Errore", "Configurazione SMTP non valida.")
+                return
 
         try:
             send_email_smtp(
